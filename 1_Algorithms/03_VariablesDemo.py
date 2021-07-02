@@ -4,7 +4,7 @@
 name = "Michael"
 
 #Here we create a variable called "age" and store the integer Number 25 in it
-age = 25
+age = 32
 
 # The print function can print whatever data is stored in variables
 # Here, we print out the contents of the "name" variable

@@ -12,7 +12,7 @@ luckyNumber = 7
 # as long as the Condition is True. As soon as the condition becomes False, the
 # loop will stop running, and Python will move onto the first line of code
 # after the loop.
- # Each time this loop runs, it prints the luckyNumber variable,
+# Each time this loop runs, it prints the luckyNumber variable,
 # and adds 1 to the current value of it.
 while (luckyNumber > 1):
     print("Hello! Lucky number is", luckyNumber)
