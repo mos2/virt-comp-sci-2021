@@ -80,7 +80,7 @@ app.delete('/users/:userId', async(req, res) => {
 
   // if no password presented or empty password
   if (!("password" in req.body) || req.body.password == "") {
-    return res.send(403)
+    return res.send(401)
   }
 
   // get user_auth object relating to user_id from 
@@ -113,14 +113,14 @@ app.delete('/users/:userId', async(req, res) => {
     }
     // if password is invalid
     console.log("Incorrect password")
-    res.status(403)
+    res.status(401)
     return res.send()
   }
   // if changed rows is greater than or less than 1,
   // user should not be able to delete users that are not
   // their own user, and they also cannot delete users that
   // dont exist
-  res.status(403)
+  res.status(401)
   res.send()
 })
 
