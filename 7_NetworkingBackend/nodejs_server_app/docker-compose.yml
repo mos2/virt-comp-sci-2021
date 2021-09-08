@@ -1,0 +1,8 @@
+version: '3.7'
+services:
+  db:
+    image: bitnami/postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRESQL_PASSWORD=pass123
