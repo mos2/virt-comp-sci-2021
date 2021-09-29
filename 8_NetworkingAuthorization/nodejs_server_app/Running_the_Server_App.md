@@ -10,10 +10,10 @@
 
 5. To stop the app, go back to the terminal window where you ran `node app` to start it up. On your keyboard, press `Control + C` keys together. This sends an **interrupt** signal to the app, which will force it to stop running.
 
-The CURL commands to interact with the app are the following:
-
 6. To host a database, if you have docker installed, you can run docker-compose, otherwise, you can host a postgres database yourself, or on the internet.
 
 ### If using Docker
 
-1. Open a terminal ( CMD for windows ) 
+Open a terminal ( CMD for windows ) and run docker-comose up -d when in the same directory as the docker-compose.yml file.
+
+This will pull a docker image and will host a PostgresQL database on your local network, on port 5432.
