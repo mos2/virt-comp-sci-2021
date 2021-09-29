@@ -1,6 +1,5 @@
 const express = require('express')
 const { Client } = require('pg')
-const bcrypt = require('bcrypt')
 
 let client
 
@@ -31,14 +30,13 @@ app.post('/users', async (req, res) => {
     // http status BadRequest
     return res.status(409)
   } else {
-    // after adding a user, and user_auth to the database...
     addUser(req.body.username, req.body.password).then((result) => {
       if (result !== null) {
         console.log("Created new user", req.body.username)
         // http status Created
         res.status(201)
         return res.json(result)
-      } else {
+      } else {POST
         // http status InternalServerError ( Error on server-side )
         res.status(500)
         return res.send()
@@ -50,7 +48,7 @@ app.post('/users', async (req, res) => {
 // get all users
 app.get('/users', async(req, res) => {
   // get all users from table
-  const users = await client.query("SELECT * FROM users")
+  const users = await client.query("SELECT * FROM insecure_users")
   res.json(users.rows)
 
 })
@@ -60,7 +58,7 @@ app.get('/users/:userId', async (req, res) => {
   const userId = parseInt(req.params.userId)
 
   const result = await client.query({
-    text: "SELECT * FROM users WHERE user_id = $1",
+    text: "SELECT * FROM insecure_users WHERE user_id = $1",
     values: [userId]
   })
 
@@ -83,33 +81,27 @@ app.delete('/users/:userId', async(req, res) => {
     return res.send(401)
   }
 
-  // get user_auth object relating to user_id from 
+  // get user object relating to user_id from 
   // request parameters, so that we can check password
   // before deleting
-  const userAuthGet = await client.query({
-    text: "SELECT * FROM user_auths WHERE user_id = $1",
+  const userGet = await client.query({
+    text: "SELECT * FROM insecure_users WHERE user_id = $1",
     values: [userId]
   })
 
-  if (userAuthGet.rows.length === 1) {
-    let userAuth = userAuthGet.rows[0]
-    if (await comparePassword(req.body.password, userAuth.password)) {
+  if (userGet.rows.length === 1) {
+    let user = userGet.rows[0]
+    if (req.body.password === user.password) {
       console.log("Password is correct")
       let result = await client.query({
-        text: "DELETE FROM users WHERE user_id = $1",
-        values: [userAuth.user_id]
+        text: "DELETE FROM insecure_users WHERE user_id = $1",
+        values: [user.user_id]
       })
-      if (result.rowCount > 0) {
-        result = await client.query({
-          text: "DELETE FROM user_auths WHERE user_id = $1",
-          values: [userAuth.user_id]
-        })
         if (result.rowCount > 0) {
           console.log("Successfully deleted user")
           res.status(200)
           return res.send()
-        }   
-      }
+        }
     }
     // if password is invalid
     console.log("Incorrect password")
@@ -123,77 +115,29 @@ app.delete('/users/:userId', async(req, res) => {
   res.status(401)
   res.send()
 })
-
-const hashPassword = async (password) => {
-  // a salt is a set  or random characters to add to the password
-  // when hashing. this protects against having duplicate or common
-  // passwords being compromised, as it completely changes what the
-  // hash looks like.
-  const salt = await bcrypt.genSalt(10)
-  return bcrypt.hash(password, salt)
-}
-
-// this function gets the salt and cypher from the stored
-// hash in the database. Good explanation here: 
-// https://stackoverflow.com/a/6833165
-const comparePassword = async (password, hash) => {
-  // hash provided password and check if equal to stored password
-  // ( uses same salt as stored on database )
-  return await bcrypt.compare(password, hash);
-}
-
-// creates user and user_auth --> user_auth stores
-// password and user_id only
 const addUser = async (username, password) => {
   let res
   const userInsert = {
-    text: `INSERT INTO users (username)
-    VALUES($1) RETURNING *
+    text: `INSERT INTO insecure_users (username, password)
+    VALUES($1, $2) RETURNING *
     `,
-    values: [username]
+    values: [username, password]
   }
   res = await client.query(userInsert)
   if (res.rows && res.rows.length > 0) {
     if (!("user_id" in res.rows[0]) || !("username" in res.rows[0])) {
       return null
     }
+    return res.rows[0]
   } else return null
-
-  // create user_auth now, as user has been saved to database
-  const hash = await hashPassword(password)
-  const userAuthInsert = {
-    text: `INSERT INTO user_auths (user_id, password)
-      VALUES($1, $2) RETURNING *
-    `,
-    values: [res.rows[0].user_id, hash]
-  }
-  const userAuth = await client.query(userAuthInsert)
-
-  if ("rows" in userAuth) {
-    if (userAuth.rows.length > 0) {
-      const userAuthObj = userAuth.rows[0]
-      if ("user_id" in userAuthObj && "password" in userAuthObj) {
-        if (userAuthObj.user_id > 0 && userAuthObj.password != "") {
-          return res.rows[0]
-        }
-      }
-    }
-    return null
-  }
 }
 const migrate = () => {
-  // user contains an id and username
-  // user_auth contains the same id and a hashed password
+  // user contains an id and username and plaintext password
   client.query(
-    `CREATE TABLE IF NOT EXISTS users (
+    `CREATE TABLE IF NOT EXISTS insecure_users (
       user_id   SERIAL PRIMARY KEY,
-      username  TEXT
-    );`
-  )
-  client.query(
-    `CREATE TABLE IF NOT EXISTS user_auths (
-      user_id INT,
-      password TEXT
+      username  TEXT,
+      password  TEXT
     );`
   )
 }
